@@ -2,44 +2,25 @@ import { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import Head from "next/head";
 import Image from "next/image";
 import styles from "../styles/Home.module.css";
+import { client } from "../utils/client";
 
 type Data = {
   friends: Record<string, string>[];
 };
 
-const query = `query {
+const QUERY = `query {
   friend {
     name
   }
 }`;
 
 export const getServerSideProps: GetServerSideProps<Data> = async (context) => {
-  let friends;
-
-  try {
-    const response = await fetch(
-      process.env.NEXT_PUBLIC_HASURA_PROJECT_ENDPOINT as string,
-      {
-        method: "POST",
-        headers: {
-          "x-hasura-admin-secret": process.env.HASURA_ADMIN_SECRET as string,
-        },
-        body: JSON.stringify({ query }),
-      }
-    );
-
-    const {
-      data: { friend },
-    } = await response.json();
-
-    friends = friend;
-  } catch (e) {
-    console.log({ e });
-  }
-
-  return {
-    props: { friends: friends },
-  };
+  return client
+    .query(QUERY, {})
+    .toPromise()
+    .then((d) => ({
+      props: { friends: d.data.friend },
+    }));
 };
 
 export default function Home<NextPage>({
@@ -58,19 +39,6 @@ export default function Home<NextPage>({
           <h2 key={friend.name}>{friend.name}</h2>
         ))}
       </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{" "}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
     </div>
   );
 }
